@@ -2,36 +2,37 @@ const express = require('express');
 
 const app = express();//instance of an express.js application
 
-app.use("/user",(req, res) => { //request handler function
-    res.send("HaHaHaHa");
-});
-app.get("/user",(req, res) => { 
-    res.send({firstname: "Raunak", lastname: "Razz"});
-});
-app.post("/user",(req, res) => { 
-    res.send("Data Saved Successfully.");
-});
-app.delete("/user",(req, res) => { 
-    res.send("Data Deleted.");
-});
+//app.use("/user",rH1,[rH2,rH3,rH4,],rH5);
 
-app.get("/",(req, res) => { 
-    res.send("Hello this is dashboard.");
-});
-app.get("/test",(req, res) => { //request handler function
-    res.send("Hello from the server.");
-});
-app.get("/home",(req, res) => { //request handler function
-    res.send("home home home.");
-});
-// app.use("/test",(req, res) => { //request handler function
-//     res.send("Hello from the server.");
-
-/*
-=> app.use("/"): matches all routes starting with /, including /test, /home, etc. and will also match all the HTTP method API to /test,/home,etc.
-=> app.get("/"): only matches exact GET requests to / and will only handle GET calls to /
-*/
-
+app.use(
+    "/user", 
+    (req,res,next) => {// Middleware
+        console.log("First Request Handled");
+        // res.send("1st Response");   
+        next();
+    },
+    [
+        (req,res,next) => {// Middleware
+            console.log("Second Request Handled");  
+            // res.send("2nd Response");   
+            next();
+        },
+        (req,res,next) => {// Middleware
+            console.log("Third Request Handled");    
+            // res.send("3rd Response");   
+            next();
+        },
+        (req,res,next) => {// Middleware
+            console.log("Forth Request Handled");    
+            // res.send("4th Response");   
+            next();
+        },
+    ],
+    (req,res) => { //REAL Request Handler
+        console.log("Fifth Request Handled");    
+        res.send("5th Response");   
+    }
+);
 app.listen(8080, () => {
     console.log("Server is successfully listening on port 8080......");
 });
