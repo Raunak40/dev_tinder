@@ -9,7 +9,7 @@ app.use(
     (req,res,next) => {// Middleware
         console.log("First Request Handled");
         // res.send("1st Response");   
-        next();
+        next(); // calls next Middleware in the stack
     },
     [
         (req,res,next) => {// Middleware
