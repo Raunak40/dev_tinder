@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const isEmail = require('validator/lib/isEmail'); //can be used to validate a lot of fields
+const validator = require('validator'); //can be used to validate a lot of fields
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
         match: /^[A-Za-z\s]+$/,
 
     },
-    lastName: {
+    lastName: { 
         type: String,
         match: /^[A-Za-z\s]+$/,
     },
@@ -20,18 +20,19 @@ const userSchema = new mongoose.Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        validate: [isEmail, 'Please fill a valid email address'],
-        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ ,
+        validate(value){
+            if(!validator.isEmail(value)){
+                throw new Error("Please fill a valid email address");
+            }
+        },
+        //match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ ,
     },
     password: {
         type: String,
         required: true,
         validate(value){
-            if(value.length < 8){
-                throw new Error("Password must be at least 8 characters");
-            }
-            if(!/[A-Z]/.test(value) || !/[0-9]/.test(value) || !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)){
-                throw new Error("Password must contain at least one uppercase letter,one number and one special character");
+            if(!validator.isStrongPassword(value)){
+                throw new Error("Weak Password");
             }
         }
     },
@@ -56,9 +57,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: "This is a default user about",
     },
-    hobbies: {
-        type: [String],
-    }
+    hobbies: [{
+        type: String,
+    }]
 },
 {
     timestamps: true,

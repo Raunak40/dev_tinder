@@ -1,25 +1,46 @@
 const express = require('express');
 const connDB = require('./config/database');
 const User = require('./Models/user');
+const { validateSignUpData } = require('./utils/validation');
+const bcrypt = require('bcrypt');
 const app = express();//instance of an express.js application
-app.use(express.json());//Returns middleware that only parses json and only looks at requests where the Content-Type header matches the type option.
+app.use(express.json());//Returns middleware that only parses json
 
 //POST new users
 app.post("/signup", async (req, res) => {
     try {
-        let { firstName, lastName, emailID, password, age, gender, hobbies } = req.body;
-        //Trim strings manually
-        firstName = firstName.trim();
-        lastName = lastName?.trim();
-        emailID = emailID.trim().toLowerCase();
-        password = password.trim();
-        gender = gender?.trim().toLowerCase();
-        
-        const user = new User(req.body); // Creating a new instance of the User Model
+        validateSignUpData(req);//Data Validation
+        const { firstName, lastName, emailID, password, age, gender } = req.body;
+
+        //Encrypting password
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const user = new User({ firstName, lastName, emailID, password: passwordHash, age, gender }); // Creating a new instance of the User Model
         await user.save();
         res.send("User Added successfully");
     } catch (err) {
         res.status(400).send("Error saving the user: " + err.message);
+    }
+})
+
+//LOGIN 
+app.post("/login", async (req, res) => {
+    try {
+        const { emailID, password } = req.body;
+
+        const user = await User.findOne({ emailID: emailID });
+        if (!user) {
+            throw new Error("Invalid Credentials");
+        }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (isPasswordValid) {
+            res.send("Logged in Successfully");
+        }
+        else {
+            res.send("Invalid Credentials");
+        }
+    } catch (err) {
+        res.status(400).send("ERROR: " + err.message);
     }
 })
 
@@ -71,11 +92,15 @@ app.patch("/user/:userId", async (req, res) => {
             throw new Error("Update not allowed");
         }
         //Ensures hobbies are unique
-        if (data.hobbies && Array.isArray(data.hobbies)) {
-            data.hobbies = [...new Set(data.hobbies)];
+        if (Array.isArray(data.hobbies)) {
+            data.hobbies = [...new Set(data.hobbies.map(h => h.trim().toLowerCase()))];
+            if (data.hobbies.length > 10) {
+                throw new Error("Hobbies cannot be more than 10");
+            }
         }
-        if (data?.hobbies.length > 10) {
-            throw new Error("Skills cannot be more than 10");
+
+        if(data.password){
+            data.password = await bcrypt.hash(data.password, 10);
         }
 
 
