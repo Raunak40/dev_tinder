@@ -2,15 +2,20 @@ const express = require('express');
 const connDB = require('./config/database');
 const User = require('./Models/user');
 const app = express();//instance of an express.js application
-app.use(express.json());
+app.use(express.json());//Returns middleware that only parses json and only looks at requests where the Content-Type header matches the type option.
 
+//POST new users
 app.post("/signup", async (req, res) => {
-
-    console.log(req.body);
-    // Creating a new instance of the User Model
-    const user = new User(req.body);
-
     try {
+        let { firstName, lastName, emailID, password, age, gender, hobbies } = req.body;
+        //Trim strings manually
+        firstName = firstName.trim();
+        lastName = lastName?.trim();
+        emailID = emailID.trim().toLowerCase();
+        password = password.trim();
+        gender = gender?.trim().toLowerCase();
+        
+        const user = new User(req.body); // Creating a new instance of the User Model
         await user.save();
         res.send("User Added successfully");
     } catch (err) {
@@ -44,46 +49,67 @@ app.get("/feed", async (req, res) => {
 });
 
 //Delete a user from the database
-app.delete("/user",async (req,res) =>{
+app.delete("/user", async (req, res) => {
     const userId = req.body.userId;
-    try{
+    try {
         const user = await User.findByIdAndDelete(userId);
         res.send("User deleted successfully");
     }
-    catch (err){
+    catch (err) {
         res.status(400).send("Something went wrong");
     }
 });
 
 //Update data of the user by userID
-// app.patch("/user", async(req,res) => {
-//     const userId = req.body.userId;
-//     const data = req.body;
-//     try{
-//         await User.findByIdAndUpdate(userId,data);
-//         res.send("User updatedd successfully");
-//     }
-//     catch (err){
-//         res.status(400).send("Something went wrong");
-//     }
-// });
-
-//Update data of the user by email
-app.patch("/user", async(req,res) => {
-    const userEmail = req.body.emailID;
+app.patch("/user/:userId", async (req, res) => {
+    const userId = req.params?.userId;
     const data = req.body;
-    try{
-        await User.findOneAndUpdate(
-            {emailID: userEmail},
-            {$set: data},
-            {runValidators: true},
-        );
+    try {
+        const ALLOWED_UPDATES = ["photoURL", "about", "gender", "age", "hobbies", "password",];
+        const isUpdateAllowed = Object.keys(data).every((k) => ALLOWED_UPDATES.includes(k));
+        if (!isUpdateAllowed) {
+            throw new Error("Update not allowed");
+        }
+        //Ensures hobbies are unique
+        if (data.hobbies && Array.isArray(data.hobbies)) {
+            data.hobbies = [...new Set(data.hobbies)];
+        }
+        if (data?.hobbies.length > 10) {
+            throw new Error("Skills cannot be more than 10");
+        }
+
+
+        const result = await User.findByIdAndUpdate({ _id: userId }, data, {
+            returnDocument: "after",
+            runValidators: true,
+        });
+        if (!result) {
+            return res.status(404).send("User not found");
+        }
         res.send("User updatedd successfully");
     }
-    catch (err){
-        res.status(400).send("UPDATE FAILED: " + err.message);
+    catch (err) {
+        res.status(400).send(err.message);
     }
-})
+});
+
+//Update data of the user by email
+// app.patch("/user", async (req, res) => {
+//     const userEmail = req.body.emailID;
+//     const data = req.body;
+
+//     try {
+//         await User.findOneAndUpdate(
+//             { emailID: userEmail },
+//             { $set: data },
+//             { runValidators: true },
+//         );
+//         res.send("User updatedd successfully");
+//     }
+//     catch (err) {
+//         res.status(400).send("UPDATE FAILED: " + err.message);
+//     }
+// })
 
 connDB()
     .then(() => {

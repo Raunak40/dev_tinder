@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const isEmail = require('validator/lib/isEmail');
+const isEmail = require('validator/lib/isEmail'); //can be used to validate a lot of fields
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -7,10 +7,12 @@ const userSchema = new mongoose.Schema({
         required: true,
         minLength: 4,
         maxLength: 20,
+        match: /^[A-Za-z\s]+$/,
 
     },
     lastName: {
-        type: String
+        type: String,
+        match: /^[A-Za-z\s]+$/,
     },
     emailID: {
         type: String,
@@ -19,10 +21,19 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         trim: true,
         validate: [isEmail, 'Please fill a valid email address'],
+        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ ,
     },
     password: {
         type: String,
         required: true,
+        validate(value){
+            if(value.length < 8){
+                throw new Error("Password must be at least 8 characters");
+            }
+            if(!/[A-Z]/.test(value) || !/[0-9]/.test(value) || !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)){
+                throw new Error("Password must contain at least one uppercase letter,one number and one special character");
+            }
+        }
     },
     age: {
         type: Number,
