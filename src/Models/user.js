@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
         match: /^[A-Za-z\s]+$/,
 
     },
-    lastName: { 
+    lastName: {
         type: String,
         match: /^[A-Za-z\s]+$/,
     },
@@ -22,8 +22,8 @@ const userSchema = new mongoose.Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        validate(value){
-            if(!validator.isEmail(value)){
+        validate(value) {
+            if (!validator.isEmail(value)) {
                 throw new Error("Please fill a valid email address");
             }
         },
@@ -32,21 +32,21 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-        validate(value){
-            if(!validator.isStrongPassword(value)){
+        validate(value) {
+            if (!validator.isStrongPassword(value)) {
                 throw new Error("Weak Password");
             }
         }
     },
     age: {
         type: Number,
-        min: 18, 
+        min: 18,
     },
     gender: {
         type: String,
         trim: true,
-        validate(value){//only works for new object by default
-            if(!["male","female","others"].includes(value)){
+        validate(value) {//only works for new object by default
+            if (!["male", "female", "others"].includes(value)) {
                 throw new Error("Gender data is not valid");
             }
         },
@@ -59,26 +59,44 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: "This is a default user about",
     },
-    hobbies: [{
-        type: String,
-    }]
-},
-{
-    timestamps: true,
-});
+    hobbies: {
+        type: [{
+            type: String,
+            trim: true,
+            lowercase: true,
+        }],
+        set: function (arr) {
+            if (!Array.isArray(arr)) return arr;
 
-userSchema.methods.getJWT = async function (){
+            // Clean, normalize, and deduplicate
+            const cleaned = arr.map(h => h.trim().toLowerCase());
+            const unique = [...new Set(cleaned)];
+
+            // Limit hobbies count
+            if (unique.length > 10) {
+                throw new Error("Hobbies cannot be more than 10");
+            }
+
+            return unique;
+        }
+    }
+},
+    {
+        timestamps: true,
+    });
+
+userSchema.methods.getJWT = async function () {
     const user = this;
 
-    const token = await jwt.sign({_id: user._id}, "DEV@tinder007", {expiresIn: "7d"});
+    const token = await jwt.sign({ _id: user._id }, "DEV@tinder007", { expiresIn: "7d" });
     return token;
 }
 
-userSchema.methods.validatePassword = async function(userInputtedPassword){
+userSchema.methods.validatePassword = async function (userInputtedPassword) {
     const user = this;
     const passwordHash = user.password;
 
-    const isPasswordValid = await bcrypt.compare(userInputtedPassword,passwordHash);
+    const isPasswordValid = await bcrypt.compare(userInputtedPassword, passwordHash);
     return isPasswordValid;
 }
 

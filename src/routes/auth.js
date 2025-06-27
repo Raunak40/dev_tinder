@@ -4,7 +4,7 @@ const User = require('../Models/user');
 const { validateSignUpData } = require('../utils/validation');
 const bcrypt = require('bcrypt');
 
-//POST new users
+//SIGN UP
 authRouter.post("/signup", async (req, res) => {
     try {
         validateSignUpData(req);//Data Validation
@@ -46,5 +46,12 @@ authRouter.post("/login", async (req, res) => {
         res.status(400).send("ERROR: " + err.message);
     }
 });
+
+//LOGOUT
+authRouter.post("/logout",async (req,res) => {
+    res.cookie("token", null, {
+        expires: new Date(Date.now())
+    }).send("Logged out!!!!");
+})
 
 module.exports = authRouter;
